@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const datasetId = (form.get("datasetId") as string) || `${Date.now()}`;
     if (!file) return NextResponse.json({ error: "No file" }, { status: 400 });
 
-    const mlUrl = process.env.ML_SERVICE_URL || "http://127.0.0.1:8000";
+    const mlUrl = process.env.ML_SERVICE_URL || "https://huggingface.co/spaces/naufalrozan/isense-air-service";
     const fd = new FormData();
     fd.append("file", file, "upload.csv");
     fd.append("dataset_id", datasetId);
