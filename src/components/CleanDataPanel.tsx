@@ -16,7 +16,6 @@ function guessKey(keys: string[], cands: string[]) {
     const i = lower.findIndex((k) => cands.includes(k));
     return i >= 0 ? keys[i] : "";
 }
-
 function niceHeader(key: string) {
     if (!key) return key;
     return key.replace(/_/g, " ").replace(/\b(\w)/g, (m) => m.toUpperCase());
@@ -43,58 +42,66 @@ export default function CleanDataPanel({
         PAGE_SIZE_OPTIONS.includes(initialPageSize) ? initialPageSize : 200
     );
     const [page, setPage] = useState(0); // 0-indexed
-
     const totalPages = useMemo(
         () => Math.max(1, Math.ceil(rows.length / pageSize)),
         [rows.length, pageSize]
     );
-
     const start = page * pageSize;
     const end = Math.min(start + pageSize, rows.length);
-
-    // jaga-jaga kalau pageSize berubah sehingga page jadi out of range
     if (page >= totalPages && totalPages > 0) {
-        // reset page ke terakhir yg valid (tanpa re-render loop)
         setTimeout(() => setPage(totalPages - 1), 0);
     }
 
-    // slice rows untuk tampilan halaman saat ini
     const view = useMemo(() => rows.slice(start, end), [rows, start, end]);
 
-    // ===== class counts =====
-    const classCounts = useMemo(() => {
-        if (!classKey) return [] as { name: string; count: number }[];
-        const map = new Map<string, number>();
-        for (const r of rows) {
-            const v = String(r?.[classKey] ?? "Unknown");
-            map.set(v, (map.get(v) || 0) + 1);
+    // ===== class counts (rapi & terurut) =====
+    const { classCounts, classTotal } = useMemo(() => {
+        const out = new Map<string, number>();
+        if (classKey) {
+            for (const r of rows) {
+                const raw = r?.[classKey];
+                const label = (raw == null || raw === "") ? "Unknown" : String(raw);
+                out.set(label, (out.get(label) || 0) + 1);
+            }
         }
-        return [...map.entries()]
-            .sort((a, b) => b[1] - a[1])
-            .map(([name, count]) => ({ name, count }));
+        // urutkan sesuai preferensi
+        const order = [
+            "Class I", "Class IIA/IIB", "Class II", "Class III", "Class IV", "Class V", "Unknown",
+        ];
+        const toArr = [...out.entries()].map(([name, count]) => ({ name, count }));
+        toArr.sort((a, b) => {
+            const ia = order.indexOf(a.name);
+            const ib = order.indexOf(b.name);
+            if (ia >= 0 && ib >= 0) return ia - ib;
+            if (ia >= 0) return -1;
+            if (ib >= 0) return 1;
+            return b.count - a.count; // sisanya by count
+        });
+        const total = toArr.reduce((s, x) => s + x.count, 0);
+        return { classCounts: toArr, classTotal: total };
     }, [rows, classKey]);
 
     // ===== formatter =====
-    function fmt(key: string, v: any) {
+    function fmt(key: string, v: unknown) {
         if (v == null || v === "") return "None";
         const typ = schema[key];
         if (typ === "datetime") {
-            const d = dayjs(v);
+            const d = dayjs(v as string);
             return d.isValid() ? d.format("YYYY-MM-DD HH:mm:ss") : String(v);
         }
         if (typ === "number") {
             const num = Number(v);
             if (!Number.isFinite(num)) return String(v);
-            return Math.abs(num) >= 1000 ? num.toFixed(0) : num.toFixed(3);
+            return Math.abs(num) >= 1000 ? num.toLocaleString() : num.toFixed(3);
         }
         return String(v);
     }
 
     // ===== handlers =====
-    function goFirst() { setPage(0); }
-    function goPrev() { setPage((p) => Math.max(0, p - 1)); }
-    function goNext() { setPage((p) => Math.min(totalPages - 1, p + 1)); }
-    function goLast() { setPage(totalPages - 1); }
+    const goFirst = () => setPage(0);
+    const goPrev = () => setPage((p) => Math.max(0, p - 1));
+    const goNext = () => setPage((p) => Math.min(totalPages - 1, p + 1));
+    const goLast = () => setPage(totalPages - 1);
 
     return (
         <section className="mt-10 rounded-2xl border border-gray-200 bg-white">
@@ -104,7 +111,6 @@ export default function CleanDataPanel({
                 </h2>
 
                 <div className="flex items-center gap-3">
-                    {/* Page size selector */}
                     <label className="hidden sm:flex items-center gap-2 text-sm text-gray-700">
                         Rows per page
                         <select
@@ -160,50 +166,20 @@ export default function CleanDataPanel({
                         </table>
                     </div>
 
-                    {/* Pagination controls */}
+                    {/* Pagination */}
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mt-3 text-sm text-gray-700">
                         <span>
                             Showing <span className="font-medium">{rows.length ? start + 1 : 0}</span> –{" "}
                             <span className="font-medium">{end}</span> of{" "}
-                            <span className="font-medium">{rows.length}</span> rows
+                            <span className="font-medium">{rows.length.toLocaleString()}</span> rows
                         </span>
 
                         <div className="flex items-center gap-2">
-                            <button
-                                onClick={goFirst}
-                                disabled={page === 0}
-                                className="px-2 py-1 rounded border bg-white disabled:opacity-50"
-                                aria-label="First page"
-                            >
-                                ⏮
-                            </button>
-                            <button
-                                onClick={goPrev}
-                                disabled={page === 0}
-                                className="px-3 py-1 rounded border bg-white disabled:opacity-50"
-                            >
-                                Prev
-                            </button>
-
-                            <span className="px-2">
-                                Page <span className="font-medium">{page + 1}</span> / {totalPages}
-                            </span>
-
-                            <button
-                                onClick={goNext}
-                                disabled={page >= totalPages - 1}
-                                className="px-3 py-1 rounded border bg-white disabled:opacity-50"
-                            >
-                                Next
-                            </button>
-                            <button
-                                onClick={goLast}
-                                disabled={page >= totalPages - 1}
-                                className="px-2 py-1 rounded border bg-white disabled:opacity-50"
-                                aria-label="Last page"
-                            >
-                                ⏭
-                            </button>
+                            <button onClick={goFirst} disabled={page === 0} className="px-2 py-1 rounded border bg-white disabled:opacity-50" aria-label="First page">⏮</button>
+                            <button onClick={goPrev} disabled={page === 0} className="px-3 py-1 rounded border bg-white disabled:opacity-50">Prev</button>
+                            <span className="px-2">Page <span className="font-medium">{page + 1}</span> / {totalPages}</span>
+                            <button onClick={goNext} disabled={page >= totalPages - 1} className="px-3 py-1 rounded border bg-white disabled:opacity-50">Next</button>
+                            <button onClick={goLast} disabled={page >= totalPages - 1} className="px-2 py-1 rounded border bg-white disabled:opacity-50" aria-label="Last page">⏭</button>
                         </div>
                     </div>
 
@@ -211,13 +187,11 @@ export default function CleanDataPanel({
                     {classKey && (
                         <div>
                             <h3 className="font-semibold mb-2">Count per Class:</h3>
-                            <div className="overflow-hidden rounded-lg border max-w-sm">
+                            <div className="overflow-hidden rounded-lg border max-w-xs">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="bg-gray-50">
-                                            <th className="px-3 py-2 border-b text-left">
-                                                {niceHeader(classKey)}
-                                            </th>
+                                            <th className="px-3 py-2 border-b text-left">{niceHeader(classKey)}</th>
                                             <th className="px-3 py-2 border-b text-right">count</th>
                                         </tr>
                                     </thead>
@@ -225,9 +199,13 @@ export default function CleanDataPanel({
                                         {classCounts.map((c) => (
                                             <tr key={c.name} className="odd:bg-white even:bg-gray-50">
                                                 <td className="px-3 py-2 border-b">{c.name}</td>
-                                                <td className="px-3 py-2 border-b text-right">{c.count}</td>
+                                                <td className="px-3 py-2 border-b text-right">{c.count.toLocaleString()}</td>
                                             </tr>
                                         ))}
+                                        <tr className="bg-gray-50 font-semibold">
+                                            <td className="px-3 py-2 border-t">Total</td>
+                                            <td className="px-3 py-2 border-t text-right">{classTotal.toLocaleString()}</td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -239,7 +217,7 @@ export default function CleanDataPanel({
                         <h3>Water Classes and Uses (Summary)</h3>
                         <ul>
                             <li><strong>Class I</strong>: Conservation of environment, minimal treatment (Fishery I).</li>
-                            <li><strong>Class II/III</strong>: Conventional treatment or recreational with body contact (Fishery II).</li>
+                            <li><strong>Class IIA/IIB</strong>: Conventional treatment or recreational with body contact (Fishery II).</li>
                             <li><strong>Class III</strong>: Extensive treatment, common tolerant species (Fishery III).</li>
                             <li><strong>Class IV</strong>: Irrigation/livestock drinking water.</li>
                             <li><strong>Class V</strong>: Worst quality.</li>
