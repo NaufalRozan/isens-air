@@ -9,7 +9,7 @@ type Props = {
 };
 
 const TIME_CANDS = ["time", "timestamp", "datetime", "date", "created_at", "ts"];
-const CLASS_CANDS = ["water_class", "waterclass", "class", "class_label", "wq_class", "wqi_class"]; // diperluas
+const CLASS_CANDS = ["WATER_CLASS", "water_class", "class", "class_label"];
 
 function guessKey(keys: string[], cands: string[]) {
     const lower = keys.map((k) => k.toLowerCase());
@@ -21,32 +21,11 @@ function niceHeader(key: string) {
     return key.replace(/_/g, " ").replace(/\b(\w)/g, (m) => m.toUpperCase());
 }
 
-// ubah angka → label, dan rapikan variasi penulisan
-function normalizeClassLabel(raw: unknown): string {
-    if (raw == null || raw === "") return "Unknown";
-    const s = String(raw).trim();
-
-    // angka 1..5 → Class I..V
-    const asNum = Number(s);
-    if (Number.isFinite(asNum)) {
-        const map = ["", "Class I", "Class II", "Class III", "Class IV", "Class V"];
-        if (asNum >= 1 && asNum <= 5) return map[asNum];
-    }
-
-    // seragamkan variasi penulisan
-    const lc = s.toLowerCase();
-    if (lc === "class i" || lc === "i") return "Class I";
-    if (lc === "class ii" || lc === "ii") return "Class II";
-    if (lc === "class iii" || lc === "iii") return "Class III";
-    if (lc === "class iv" || lc === "iv") return "Class IV";
-    if (lc === "class v" || lc === "v") return "Class V";
-    if (lc.includes("iia") || lc.includes("ii b") || lc.includes("iib") || lc.includes("ii a")) {
-        return "Class IIA/IIB";
-    }
-    return s;
-}
-
-export default function CleanDataPanel({ rows, schema, initialPageSize = 200 }: Props) {
+export default function CleanDataPanel({
+    rows,
+    schema,
+    initialPageSize = 200,
+}: Props) {
     const [open, setOpen] = useState(false);
 
     // ===== table columns =====
@@ -55,34 +34,14 @@ export default function CleanDataPanel({ rows, schema, initialPageSize = 200 }: 
         [schema]
     );
     const timeKey = useMemo(() => guessKey(allKeys, TIME_CANDS), [allKeys]);
+    const classKey = useMemo(() => guessKey(allKeys, CLASS_CANDS), [allKeys]);
 
-    // kandidat kolom kelas: (1) dari kandidat nama, atau (2) semua kolom non-number non-time
-    const autoClassKey = useMemo(
-        () => guessKey(allKeys, CLASS_CANDS),
-        [allKeys]
-    );
-    const categoricalCols = useMemo(() => {
-        const timeSet = new Set(TIME_CANDS);
-        return allKeys.filter((k) => schema[k] !== "number" && !timeSet.has(k.toLowerCase()));
-    }, [allKeys, schema]);
-
-    // kalau auto detect gagal, fallback ke kolom categorical pertama (jika ada)
-    const [classKey, setClassKey] = useState<string>(autoClassKey || (categoricalCols[0] ?? ""));
-
-    // sync saat schema berubah
-    useMemo(() => {
-        if (!classKey && (autoClassKey || categoricalCols[0])) {
-            setClassKey(autoClassKey || categoricalCols[0] || "");
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [autoClassKey, categoricalCols.join("|")]);
-
-    // ===== pagination =====
+    // ===== pagination state =====
     const PAGE_SIZE_OPTIONS = [50, 100, 200, 500, 1000];
     const [pageSize, setPageSize] = useState<number>(
         PAGE_SIZE_OPTIONS.includes(initialPageSize) ? initialPageSize : 200
     );
-    const [page, setPage] = useState(0);
+    const [page, setPage] = useState(0); // 0-indexed
     const totalPages = useMemo(
         () => Math.max(1, Math.ceil(rows.length / pageSize)),
         [rows.length, pageSize]
@@ -92,18 +51,23 @@ export default function CleanDataPanel({ rows, schema, initialPageSize = 200 }: 
     if (page >= totalPages && totalPages > 0) {
         setTimeout(() => setPage(totalPages - 1), 0);
     }
+
     const view = useMemo(() => rows.slice(start, end), [rows, start, end]);
 
-    // ===== counts =====
+    // ===== class counts (rapi & terurut) =====
     const { classCounts, classTotal } = useMemo(() => {
         const out = new Map<string, number>();
         if (classKey) {
             for (const r of rows) {
-                const label = normalizeClassLabel(r?.[classKey]);
+                const raw = r?.[classKey];
+                const label = (raw == null || raw === "") ? "Unknown" : String(raw);
                 out.set(label, (out.get(label) || 0) + 1);
             }
         }
-        const order = ["Class I", "Class IIA/IIB", "Class II", "Class III", "Class IV", "Class V", "Unknown"];
+        // urutkan sesuai preferensi
+        const order = [
+            "Class I", "Class IIA/IIB", "Class II", "Class III", "Class IV", "Class V", "Unknown",
+        ];
         const toArr = [...out.entries()].map(([name, count]) => ({ name, count }));
         toArr.sort((a, b) => {
             const ia = order.indexOf(a.name);
@@ -111,7 +75,7 @@ export default function CleanDataPanel({ rows, schema, initialPageSize = 200 }: 
             if (ia >= 0 && ib >= 0) return ia - ib;
             if (ia >= 0) return -1;
             if (ib >= 0) return 1;
-            return b.count - a.count;
+            return b.count - a.count; // sisanya by count
         });
         const total = toArr.reduce((s, x) => s + x.count, 0);
         return { classCounts: toArr, classTotal: total };
@@ -142,28 +106,13 @@ export default function CleanDataPanel({ rows, schema, initialPageSize = 200 }: 
     return (
         <section className="mt-10 rounded-2xl border border-gray-200 bg-white">
             <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
-                <h2 className="text-lg md:text-xl font-semibold text-gray-800">Classification Table</h2>
+                <h2 className="text-lg md:text-xl font-semibold text-gray-800">
+                    Classification Table
+                </h2>
 
                 <div className="flex items-center gap-3">
-                    {/* pilih kolom kelas jika auto-detect gagal */}
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
-                        Class column
-                        <select
-                            className="rounded-lg border bg-white px-2 py-1"
-                            value={classKey}
-                            onChange={(e) => setClassKey(e.target.value)}
-                        >
-                            {!classKey && <option value="">- Select -</option>}
-                            {/* beri prioritas pada autoClassKey bila ada */}
-                            {[...new Set([autoClassKey, ...categoricalCols].filter(Boolean))].map((k) => (
-                                <option key={k} value={k!}>{niceHeader(k!)}</option>
-                            ))}
-                        </select>
-                    </label>
-
-                    {/* page size */}
                     <label className="hidden sm:flex items-center gap-2 text-sm text-gray-700">
-                        Rows/page
+                        Rows per page
                         <select
                             className="rounded-lg border bg-white px-2 py-1"
                             value={pageSize}
@@ -194,7 +143,10 @@ export default function CleanDataPanel({ rows, schema, initialPageSize = 200 }: 
                             <thead>
                                 <tr>
                                     {allKeys.map((k) => (
-                                        <th key={k} className="px-3 py-2 border-b bg-gray-50 text-left whitespace-nowrap">
+                                        <th
+                                            key={k}
+                                            className="px-3 py-2 border-b bg-gray-50 text-left whitespace-nowrap"
+                                        >
                                             {k === timeKey ? "Time" : niceHeader(k)}
                                         </th>
                                     ))}
@@ -205,7 +157,7 @@ export default function CleanDataPanel({ rows, schema, initialPageSize = 200 }: 
                                     <tr key={i} className="odd:bg-white even:bg-gray-50">
                                         {allKeys.map((k) => (
                                             <td key={k} className="px-3 py-2 border-b whitespace-nowrap">
-                                                {k === classKey ? normalizeClassLabel(r[k]) : fmt(k, r[k])}
+                                                {fmt(k, r[k])}
                                             </td>
                                         ))}
                                     </tr>
@@ -221,6 +173,7 @@ export default function CleanDataPanel({ rows, schema, initialPageSize = 200 }: 
                             <span className="font-medium">{end}</span> of{" "}
                             <span className="font-medium">{rows.length.toLocaleString()}</span> rows
                         </span>
+
                         <div className="flex items-center gap-2">
                             <button onClick={goFirst} disabled={page === 0} className="px-2 py-1 rounded border bg-white disabled:opacity-50" aria-label="First page">⏮</button>
                             <button onClick={goPrev} disabled={page === 0} className="px-3 py-1 rounded border bg-white disabled:opacity-50">Prev</button>
@@ -231,9 +184,9 @@ export default function CleanDataPanel({ rows, schema, initialPageSize = 200 }: 
                     </div>
 
                     {/* Count per class */}
-                    <div>
-                        <h3 className="font-semibold mb-2">Count per Class:</h3>
-                        {classKey ? (
+                    {classKey && (
+                        <div>
+                            <h3 className="font-semibold mb-2">Count per Class:</h3>
                             <div className="overflow-hidden rounded-lg border max-w-xs">
                                 <table className="w-full text-sm">
                                     <thead>
@@ -256,12 +209,8 @@ export default function CleanDataPanel({ rows, schema, initialPageSize = 200 }: 
                                     </tbody>
                                 </table>
                             </div>
-                        ) : (
-                            <p className="text-sm text-amber-700">
-                                Kolom kelas tidak terdeteksi. Silakan pilih kolom kelas pada selector di atas.
-                            </p>
-                        )}
-                    </div>
+                        </div>
+                    )}
 
                     {/* Summary text */}
                     <div className="prose prose-sm max-w-none">
