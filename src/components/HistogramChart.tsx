@@ -2,7 +2,7 @@
 import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
-export default function HistogramChart({ rows, param }: { rows: any[]; param: string }) {
+export default function HistogramChart({ rows, param }: { rows: Record<string, unknown>[]; param: string }) {
     const { bins, counts } = useMemo(() => {
         const xs = rows.map((r: any) => Number(r[param])).filter((v) => !Number.isNaN(v));
         if (xs.length === 0) return { bins: [], counts: [] };

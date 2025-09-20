@@ -2,14 +2,14 @@
 import { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
 
-export default function TrendChart({ rows, schema, timeKey, param }: { rows: any[]; schema: Record<string, string>; timeKey: string; param: 'ALL' | string }) {
+export default function TrendChart({ rows, schema, timeKey, param }: { rows: Record<string, unknown>[]; schema: Record<string, string>; timeKey: string; param: 'ALL' | string }) {
     const numericCols = useMemo(() => Object.entries(schema).filter(([, t]) => t === 'number').map(([k]) => k), [schema]);
 
     const data = useMemo(() => {
         return rows
             .filter(r => r[timeKey])
-            .map(r => ({ ...r, [timeKey]: new Date(r[timeKey]).toISOString() }))
-            .sort((a, b) => a[timeKey].localeCompare(b[timeKey]));
+            .map(r => ({ ...r, [timeKey]: new Date(r[timeKey] as string | number | Date).toISOString() }))
+            .sort((a, b) => (a[timeKey] as string).localeCompare(b[timeKey] as string));
     }, [rows, timeKey]);
 
     return (

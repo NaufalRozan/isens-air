@@ -1,13 +1,13 @@
 const DATASETS = new Map<string, {
     schema: Record<string, string>;
-    rows: any[];
+    rows: Record<string, unknown>[];
     missing: Record<string, number>;
     outOfRange: Record<string, number>;
 }>();
 
 export function putDataset(id: string, data: {
     schema: Record<string, string>;
-    rows: any[];
+    rows: Record<string, unknown>[];
     missing: Record<string, number>;
     outOfRange: Record<string, number>;
 }) {

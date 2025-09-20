@@ -81,7 +81,7 @@ function basicStats(values: number[]) {
     return { count: n, mean, median, min, max, stdev };
 }
 
-function makeSummary(rows: any[], schema: Record<string, string>) {
+function makeSummary(rows: Record<string, unknown>[], schema: Record<string, string>) {
     const timeKey = guessTimeKey(schema);
     const nums = numericCols(schema);
 
@@ -89,7 +89,7 @@ function makeSummary(rows: any[], schema: Record<string, string>) {
     const recent = (timeKey
         ? [...rows]
             .filter((r) => r?.[timeKey] != null)
-            .sort((a, b) => new Date(a[timeKey]).valueOf() - new Date(b[timeKey]).valueOf())
+            .sort((a, b) => new Date(a[timeKey] as string | number | Date).valueOf() - new Date(b[timeKey] as string | number | Date).valueOf())
         : [...rows]
     )
         .slice(-800) // ambil 800 baris terakhir
@@ -124,7 +124,7 @@ export default function DeepseekPanel({
     rows,
     schema,
 }: {
-    rows: any[];
+    rows: Record<string, unknown>[];
     schema: Record<string, string>;
 }) {
     const [catIdx, setCatIdx] = useState(0);

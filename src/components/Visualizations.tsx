@@ -11,7 +11,7 @@ const ScatterView = dynamic(() => import("./viz/ScatterView"), {
 });
 
 type Props = {
-    rows: any[];
+    rows: Record<string, unknown>[];
     schema: Record<string, string>;
 };
 

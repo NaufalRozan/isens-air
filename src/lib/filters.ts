@@ -2,11 +2,11 @@ import dayjs from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek';
 dayjs.extend(isoWeek);
 
-export function bucketTime(rows: any[], timeKey: string, mode: 'all' | 'daily' | 'weekly' | 'monthly') {
+export function bucketTime(rows: Record<string, unknown>[], timeKey: string, mode: 'all' | 'daily' | 'weekly' | 'monthly') {
     if (mode === 'all') return rows;
-    const group = new Map<string, any[]>();
+    const group = new Map<string, Record<string, unknown>[]>();
     for (const r of rows) {
-        const d = dayjs(r[timeKey]);
+        const d = dayjs(r[timeKey] as string | number | Date | null | undefined);
         if (!d.isValid()) continue;
         let key = '';
         if (mode === 'daily') key = d.format('YYYY-MM-DD');
@@ -18,10 +18,10 @@ export function bucketTime(rows: any[], timeKey: string, mode: 'all' | 'daily' |
     return [...group.entries()].map(([k, v]) => ({ __bucket: k, __rows: v }));
 }
 
-export function monthChoices(rows: any[], timeKey: string) {
+export function monthChoices(rows: Record<string, unknown>[], timeKey: string) {
     const set = new Set<string>();
     for (const r of rows) {
-        const d = dayjs(r[timeKey]);
+        const d = dayjs(r[timeKey] as string | number | Date | null | undefined);
         if (d.isValid()) set.add(d.format('YYYY-MM'));
     }
     return [...set].sort().map(m => ({ value: m, label: m }));

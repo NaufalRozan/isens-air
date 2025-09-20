@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import dayjs from "dayjs";
 
 type Props = {
-    rows: any[];
+    rows: Record<string, unknown>[];
     schema: Record<string, string>;
     initialPageSize?: number; // default 200
 };

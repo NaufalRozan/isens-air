@@ -11,21 +11,24 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.tz.setDefault("Asia/Jakarta");
 
-type Props = { rows: any[]; schema: Record<string, string> };
+type Props = { rows: Record<string, unknown>[]; schema: Record<string, string> };
 
 // -------- helpers --------
-function guessTimeKey(schema: Record<string, string>, rows: any[]) {
+function guessTimeKey(schema: Record<string, string>, rows: Record<string, unknown>[]) {
     const keys = Object.keys(schema);
     const candidates = ["time", "timestamp", "datetime", "date", "created_at", "ts"];
     const byName = keys.find((k) => candidates.includes(k.toLowerCase()));
     if (byName) return byName;
     for (const k of keys) {
-        const ok = rows.slice(0, 200).filter((r) => dayjs(r?.[k]).isValid()).length;
+        const ok = rows.slice(0, 200).filter((r) => {
+            const value = r?.[k];
+            return (typeof value === "string" || typeof value === "number" || value instanceof Date) && dayjs(value).isValid();
+        }).length;
         if (ok >= Math.min(rows.length, 200) * 0.6) return k;
     }
     return "";
 }
-function numericColumns(schema: Record<string, string>, rows: any[]) {
+function numericColumns(schema: Record<string, string>, rows: Record<string, unknown>[]) {
     const fromSchema = Object.entries(schema)
         .filter(([k, t]) => t === "number" && !/^unnamed:\s*\d+/i.test(k))
         .map(([k]) => k);
@@ -34,11 +37,11 @@ function numericColumns(schema: Record<string, string>, rows: any[]) {
     const sample = rows.slice(0, 200);
     return keys.filter((k) => sample.some((r) => !Number.isNaN(Number(r?.[k]))));
 }
-function monthChoices(rows: any[], timeKey: string) {
+function monthChoices(rows: Record<string, unknown>[], timeKey: string) {
     if (!timeKey) return [];
     const set = new Set<string>();
     for (const r of rows) {
-        const d = dayjs(r?.[timeKey]);
+        const d = dayjs(r?.[timeKey] as string | number | Date | null | undefined);
         if (d.isValid()) set.add(d.format("YYYY-MM"));
     }
     return [...set]
@@ -67,7 +70,7 @@ function makeHistogram(xs: number[]) {
 }
 
 // kecil: satu chart histogram
-function SmallHistogram({ title, data, xLabel }: { title: string; data: any[]; xLabel: string }) {
+function SmallHistogram({ title, data, xLabel }: { title: string; data: Record<string, unknown>[]; xLabel: string }) {
     return (
         <div className="rounded-lg border bg-white p-3">
             <p className="text-sm text-gray-700 mb-2">{title}</p>
@@ -108,7 +111,7 @@ export default function HistogramView({ rows, schema }: Props) {
     const monthFilteredRows = useMemo(() => {
         if (!timeKey || !month) return rows;
         return rows.filter((r) => {
-            const d = dayjs(r[timeKey]);
+            const d = dayjs(r[timeKey] as string | number | Date | null | undefined);
             return d.isValid() && d.format("YYYY-MM") === month;
         });
     }, [rows, timeKey, month]);

@@ -8,7 +8,7 @@ import {
 
 dayjs.extend(isoWeek);
 
-type Props = { rows: any[]; schema: Record<string, string> };
+type Props = { rows: Record<string, unknown>[]; schema: Record<string, string> };
 type Agg = "all" | "daily" | "weekly" | "monthly";
 
 function getNumeric(schema: Record<string, string>) {
@@ -24,7 +24,7 @@ function getDatetime(schema: Record<string, string>) {
 
 // ----- util untuk membangun seri satu parameter -----
 function buildSeries(
-    rows: any[],
+    rows: Record<string, unknown>[],
     timeKey: string,
     param: string,
     agg: Agg
@@ -32,7 +32,7 @@ function buildSeries(
     if (!timeKey || !param) return [];
     const cleaned = rows
         .filter(r => r[timeKey] != null && r[param] != null && r[param] !== "")
-        .map(r => ({ t: dayjs(r[timeKey]), v: Number(r[param]) }))
+        .map(r => ({ t: dayjs(r[timeKey] as string | number | Date), v: Number(r[param]) }))
         .filter(x => x.t.isValid() && !Number.isNaN(x.v))
         .sort((a, b) => a.t.valueOf() - b.t.valueOf());
 

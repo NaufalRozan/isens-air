@@ -8,7 +8,7 @@ import CleanDataPanel from "@/components/CleanDataPanel";
 
 export default function Page() {
   const [schema, setSchema] = useState<Record<string, string>>({});
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [missing, setMissing] = useState<Record<string, number>>({});
   const [oor, setOor] = useState<Record<string, number>>({});
   const [hasData, setHasData] = useState(false);

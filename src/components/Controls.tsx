@@ -8,7 +8,7 @@ export function Controls({
     setState,
 }: {
     schema: Record<string, string>;
-    rows: any[];
+    rows: Record<string, unknown>[];
     state: { param: 'ALL' | string; timeKey: string; bucket: 'all' | 'daily' | 'weekly' | 'monthly'; month?: string };
     setState: (p: any) => void;
 }) {

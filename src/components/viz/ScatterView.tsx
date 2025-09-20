@@ -11,9 +11,9 @@ import {
 } from "recharts";
 import { lttb } from "@/lib/lttb";
 
-type Props = { rows: any[]; schema: Record<string, string> };
+type Props = { rows: Record<string, unknown>[]; schema: Record<string, string> };
 
-function numericColumns(schema: Record<string, string>, rows: any[]) {
+function numericColumns(schema: Record<string, string>, rows: Record<string, unknown>[]) {
     const fromSchema = Object.entries(schema)
         .filter(([k, t]) => t === "number" && !/^unnamed:\s*\d+/i.test(k))
         .map(([k]) => k);
