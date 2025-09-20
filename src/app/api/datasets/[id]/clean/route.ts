@@ -13,8 +13,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ ok: true });
 }
 
-export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
-    const ds = getDataset(params.id);
-    if (!ds) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    return NextResponse.json(ds);
+export async function GET(
+    req: Request,
+    context: { params: { id: string } }
+) {
+    const { id } = context.params;
+    return Response.json({ ok: true, dataset: id });
 }
+
