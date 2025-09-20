@@ -141,7 +141,7 @@ export default function DeepseekPanel({
         setLoading(true);
         setAnswer("");
         try {
-            const res = await fetch("/api/deepseek", {
+            const res = await fetch("/api/openai", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
