@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "iSENSE-Air",
+  title: "iSENS-Air",
   description: "Artificial Intelligence for River Water Quality Monitoring",
 };
 
