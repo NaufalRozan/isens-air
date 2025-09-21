@@ -9,11 +9,20 @@ type Props = {
 };
 
 const TIME_CANDS = ["time", "timestamp", "datetime", "date", "created_at", "ts"];
-const CLASS_CANDS = ["WATER_CLASS", "water_class", "class", "class_label"];
+// tambahkan 'Predicted_Class' di daftar kandidat
+const CLASS_CANDS = [
+    "WATER_CLASS",
+    "water_class",
+    "class",
+    "class_label",
+    "Predicted_Class",
+    "predicted_class",
+];
 
 function guessKey(keys: string[], cands: string[]) {
-    const lower = keys.map((k) => k.toLowerCase());
-    const i = lower.findIndex((k) => cands.includes(k));
+    const lowerKeys = keys.map((k) => k.toLowerCase());
+    const lowerCands = cands.map((c) => c.toLowerCase());
+    const i = lowerKeys.findIndex((k) => lowerCands.includes(k));
     return i >= 0 ? keys[i] : "";
 }
 function niceHeader(key: string) {
@@ -60,23 +69,31 @@ export default function CleanDataPanel({
         if (classKey) {
             for (const r of rows) {
                 const raw = r?.[classKey];
-                const label = (raw == null || raw === "") ? "Unknown" : String(raw);
+                const label = raw == null || raw === "" ? "Unknown" : String(raw).toUpperCase();
                 out.set(label, (out.get(label) || 0) + 1);
             }
         }
-        // urutkan sesuai preferensi
-        const order = [
-            "Class I", "Class IIA/IIB", "Class II", "Class III", "Class IV", "Class V", "Unknown",
-        ];
+
+        // ranking untuk urutan tampilan (IIA & IIB berdekatan)
+        const rank: Record<string, number> = {
+            I: 0,
+            IIA: 1,
+            IIB: 1.1,
+            II: 2,
+            III: 3,
+            IV: 4,
+            V: 5,
+            UNKNOWN: 9,
+        };
+
         const toArr = [...out.entries()].map(([name, count]) => ({ name, count }));
         toArr.sort((a, b) => {
-            const ia = order.indexOf(a.name);
-            const ib = order.indexOf(b.name);
-            if (ia >= 0 && ib >= 0) return ia - ib;
-            if (ia >= 0) return -1;
-            if (ib >= 0) return 1;
-            return b.count - a.count; // sisanya by count
+            const ra = rank[a.name.toUpperCase()] ?? 99;
+            const rb = rank[b.name.toUpperCase()] ?? 99;
+            if (ra !== rb) return ra - rb;
+            return b.count - a.count;
         });
+
         const total = toArr.reduce((s, x) => s + x.count, 0);
         return { classCounts: toArr, classTotal: total };
     }, [rows, classKey]);
