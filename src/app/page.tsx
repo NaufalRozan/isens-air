@@ -9,7 +9,6 @@ import CleanDataPanel from "@/components/CleanDataPanel";
 
 type Mode = "csv" | "realtime" | "historical";
 
-// schema fix sesuai parameter CSV
 const FIXED_SCHEMA: Record<string, string> = {
   time: "datetime",
   Ph_Sensor: "number",
@@ -26,14 +25,12 @@ const FIXED_SCHEMA: Record<string, string> = {
 
 export default function Page() {
   const [mode, setMode] = useState<Mode>("csv");
-
   const [schema, setSchema] = useState<Record<string, string>>({});
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [missing, setMissing] = useState<Record<string, number>>({});
   const [oor, setOor] = useState<Record<string, number>>({});
   const [hasData, setHasData] = useState(false);
 
-  // === realtime state ===
   const [running, setRunning] = useState(false);
 
   function handleUploaded(payload: any) {
@@ -45,7 +42,6 @@ export default function Page() {
     setHasData(true);
   }
 
-  // generator baris dummy (untuk realtime & historical)
   function generateDummyRow(): Record<string, unknown> {
     const now = new Date();
     return {
@@ -63,31 +59,28 @@ export default function Page() {
     };
   }
 
-  // reset state ketika ganti mode
   useEffect(() => {
     setSchema({});
     setRows([]);
     setMissing({});
     setOor({});
     setHasData(false);
-    setRunning(false); // stop realtime juga
+    setRunning(false);
   }, [mode]);
 
-  // effect realtime
   useEffect(() => {
     if (mode !== "realtime" || !running) return;
     const id = setInterval(() => {
       const newRow = generateDummyRow();
       setSchema(FIXED_SCHEMA);
-      setRows((prev) => [...prev.slice(-49), newRow]); // max 50 row terakhir
+      setRows((prev) => [...prev.slice(-49), newRow]);
       setMissing({});
       setOor({});
       setHasData(true);
-    }, 2000); // update tiap 2 detik
+    }, 2000);
     return () => clearInterval(id);
   }, [mode, running]);
 
-  // historical dummy loader
   async function handleHistoricalWecon(start: string, end: string) {
     const s = new Date(start).getTime();
     const e = new Date(end).getTime();
@@ -120,42 +113,48 @@ export default function Page() {
 
   return (
     <main className="min-h-screen bg-white">
+      {/* === HERO di luar container agar background foto full-bleed === */}
+      <HeroHeader />
+
+      {/* Konten lain tetap dalam container */}
       <div className="container mx-auto px-4 md:px-6 pb-16">
-        <HeroHeader />
         <h2 className="mt-10 text-2xl font-bold text-gray-800">
           Upload your CSV data or view live monitoring from connected stations
         </h2>
 
         {/* === pilih mode === */}
-        <section className="mt-4 flex gap-4">
-          <label>
+        <section className="mt-4 flex gap-6 items-center">
+          <label className="flex items-center gap-2">
             <input
               type="radio"
               value="csv"
               checked={mode === "csv"}
               onChange={() => setMode("csv")}
-            />{" "}
+            />
             Upload CSV
           </label>
-          <label>
+
+          <label className="flex items-center gap-2">
             <input
               type="radio"
               value="realtime"
               checked={mode === "realtime"}
               onChange={() => setMode("realtime")}
-            />{" "}
+            />
             Realtime Wecon
           </label>
-          <label>
+
+          <label className="flex items-center gap-2">
             <input
               type="radio"
               value="historical"
               checked={mode === "historical"}
               onChange={() => setMode("historical")}
-            />{" "}
+            />
             Historical Wecon
           </label>
         </section>
+
 
         {/* === konten sesuai mode === */}
         {mode === "csv" && (
@@ -179,22 +178,12 @@ export default function Page() {
         {mode === "historical" && (
           <section className="mt-2 space-y-2">
             <div className="flex gap-2">
-              <input
-                type="datetime-local"
-                id="start"
-                className="border rounded px-2 py-1"
-              />
-              <input
-                type="datetime-local"
-                id="end"
-                className="border rounded px-2 py-1"
-              />
+              <input type="datetime-local" id="start" className="border rounded px-2 py-1" />
+              <input type="datetime-local" id="end" className="border rounded px-2 py-1" />
               <button
                 onClick={() => {
-                  const s = (document.getElementById("start") as HTMLInputElement)
-                    .value;
-                  const e = (document.getElementById("end") as HTMLInputElement)
-                    .value;
+                  const s = (document.getElementById("start") as HTMLInputElement).value;
+                  const e = (document.getElementById("end") as HTMLInputElement).value;
                   if (s && e) handleHistoricalWecon(s, e);
                 }}
                 className="px-4 py-2 border rounded-lg bg-blue-50 hover:bg-blue-100"
@@ -213,7 +202,6 @@ export default function Page() {
             </h3>
 
             <div className="grid md:grid-cols-3 gap-6">
-              {/* sample chart */}
               <div className="rounded-xl border bg-white p-4 shadow-sm">
                 <h4 className="font-semibold text-gray-700 mb-2">pH Trend</h4>
                 <Image
@@ -225,11 +213,8 @@ export default function Page() {
                 />
               </div>
 
-              {/* sample table */}
               <div className="rounded-xl border bg-white p-4 shadow-sm">
-                <h4 className="font-semibold text-gray-700 mb-2">
-                  Sample Parameters
-                </h4>
+                <h4 className="font-semibold text-gray-700 mb-2">Sample Parameters</h4>
                 <Image
                   src="/img/sample-parameter.png"
                   alt="Sample Parameters Table"
@@ -239,7 +224,6 @@ export default function Page() {
                 />
               </div>
 
-              {/* sample dashboard screenshot */}
               <div className="rounded-xl border bg-white p-4 shadow-sm">
                 <h4 className="font-semibold text-gray-700 mb-2">Dashboard View</h4>
                 <Image

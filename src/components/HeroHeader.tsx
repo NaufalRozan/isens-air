@@ -3,20 +3,24 @@ import Image from "next/image";
 
 export default function HeroHeader() {
     return (
-        <section className="relative py-10 md:py-16 bg-white">
-            {/* background image */}
-            <div className="absolute inset-0 -z-10">
-                <Image
-                    src="/img/hero-river.jpg"
-                    alt="River monitoring station"
-                    fill
-                    priority
-                    className="object-cover object-center opacity-20"
-                />
-            </div>
+        <section className="relative w-full isolate overflow-hidden">
+            {/* Background foto full-bleed */}
+            <Image
+                src="/img/hero-river.jpg"
+                alt=""
+                fill
+                priority
+                className="object-cover object-center"
+                sizes="100vw"
+                quality={85}
+            />
 
-            <div className="container mx-auto px-4">
-                {/* wrapper supaya gambar skalanya rapi */}
+            {/* Overlay supaya teks terbaca; atur opacity sesuai selera */}
+            <div className="absolute inset-0 bg-white/80" />
+
+            {/* Konten: boleh tetap dibatasi container; fotonya tetap full */}
+            <div className="relative container mx-auto px-4 py-10 md:py-16">
+                {/* Logo */}
                 <div className="mx-auto w-full max-w-4xl">
                     <Image
                         src="/img/logo.png"
@@ -34,11 +38,10 @@ export default function HeroHeader() {
                     iSENS-AIR: AI for River Water Quality Monitoring
                 </h1>
 
-                <p className="mt-4 text-center text-gray-600 text-xl">
+                <p className="mt-4 text-center text-gray-700 text-xl">
                     Real-time and historical monitoring of water quality, powered by AI and IoT.
                 </p>
 
-                {/* intro singkat */}
                 <p className="mt-6 max-w-3xl mx-auto text-center text-gray-700 text-base md:text-lg leading-relaxed">
                     iSENS-AIR enables industries and agencies to monitor river water quality
                     through AI-powered analysis, IoT connectivity, and cloud-based dashboards.

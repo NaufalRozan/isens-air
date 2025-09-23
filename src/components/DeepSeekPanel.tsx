@@ -165,7 +165,7 @@ export default function DeepseekPanel({
             <div className="flex items-center gap-3">
                 <div className="h-8 w-8 rounded-md bg-gradient-to-br from-fuchsia-400 to-purple-400" />
                 <h2 className="text-2xl font-semibold text-gray-800">
-                    Get Insight with DeepSeek AI Integration
+                    Get Insight with OpenAI Integration
                 </h2>
             </div>
 
