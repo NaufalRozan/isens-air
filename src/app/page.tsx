@@ -31,18 +31,24 @@ export default function Page() {
   }
 
   // generator baris dummy
-  function generateDummyRow() {
-    const now = new Date().toISOString();
+  function generateDummyRow(): Record<string, unknown> {
+    const now = new Date();
     return {
-      time: now,
-      pH: (7 + Math.random() * 0.5).toFixed(3),
-      DO: (5 + Math.random() * 2).toFixed(3),
-      BOD: (100 + Math.random() * 50).toFixed(3),
-      COD: (300 + Math.random() * 100).toFixed(3),
-      Predicted_Class: ["I", "IIA", "IIB", "III", "IV", "V"][Math.floor(Math.random() * 6)],
+      time: now.toISOString(),
+      Ph_Sensor: (7 + Math.random() * 0.5).toFixed(3),
+      ORP_Sensor: (0.95 + Math.random() * 0.05).toFixed(4),
+      CT_Sensor: (0.01 + Math.random() * 0.05).toFixed(4),
+      TDS_Sensor: (25 + Math.random() * 5).toFixed(3),
+      NH_Sensor: (5 + Math.random() * 3).toFixed(3),
+      DO_Sensor: (6 + Math.random() * 1).toFixed(3),
+      TR_Sensor: (30 + Math.random() * 20).toFixed(3),
+      BOD_Sensor: (1300 + Math.random() * 150).toFixed(3),
+      COD_Sensor: (500 + Math.random() * 100).toFixed(3),
+      Predicted_Class: ["I", "II", "III", "IV", "V"][Math.floor(Math.random() * 5)],
     };
   }
-  
+
+
   // reset state ketika ganti mode
   useEffect(() => {
     setSchema({});
@@ -149,7 +155,7 @@ export default function Page() {
                 }}
                 className="px-4 py-2 border rounded-lg bg-blue-50 hover:bg-blue-100"
               >
-                Load Historical (Dummy)
+                Load Historical
               </button>
             </div>
           </section>
