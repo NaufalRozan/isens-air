@@ -1,13 +1,27 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import HeroHeader from "@/components/HeroHeader";
 import Visualizations from "@/components/Visualizations";
 import DeepseekPanel from "@/components/DeepSeekPanel";
 import FileDropzone from "@/components/FileDropZone";
 import CleanDataPanel from "@/components/CleanDataPanel";
 
-
 type Mode = "csv" | "realtime" | "historical";
+
+// schema fix sesuai parameter CSV
+const FIXED_SCHEMA: Record<string, string> = {
+  time: "datetime",
+  Ph_Sensor: "number",
+  ORP_Sensor: "number",
+  CT_Sensor: "number",
+  TDS_Sensor: "number",
+  NH_Sensor: "number",
+  DO_Sensor: "number",
+  TR_Sensor: "number",
+  BOD_Sensor: "number",
+  COD_Sensor: "number",
+  Predicted_Class: "string",
+};
 
 export default function Page() {
   const [mode, setMode] = useState<Mode>("csv");
@@ -18,7 +32,7 @@ export default function Page() {
   const [oor, setOor] = useState<Record<string, number>>({});
   const [hasData, setHasData] = useState(false);
 
-  // === untuk realtime ===
+  // === realtime state ===
   const [running, setRunning] = useState(false);
 
   function handleUploaded(payload: any) {
@@ -30,7 +44,7 @@ export default function Page() {
     setHasData(true);
   }
 
-  // generator baris dummy
+  // generator baris dummy (untuk realtime & historical)
   function generateDummyRow(): Record<string, unknown> {
     const now = new Date();
     return {
@@ -48,7 +62,6 @@ export default function Page() {
     };
   }
 
-
   // reset state ketika ganti mode
   useEffect(() => {
     setSchema({});
@@ -59,52 +72,45 @@ export default function Page() {
     setRunning(false); // stop realtime juga
   }, [mode]);
 
-
-  // effect jalan terus saat realtime aktif
+  // effect realtime
   useEffect(() => {
     if (mode !== "realtime" || !running) return;
     const id = setInterval(() => {
       const newRow = generateDummyRow();
-      setSchema({
-        time: "datetime",
-        pH: "number",
-        DO: "number",
-        BOD: "number",
-        COD: "number",
-        Predicted_Class: "string",
-      });
-      setRows((prev) => [...prev.slice(-49), newRow]); // simpan max 50 row terakhir
+      setSchema(FIXED_SCHEMA);
+      setRows((prev) => [...prev.slice(-49), newRow]); // max 50 row terakhir
       setMissing({});
       setOor({});
       setHasData(true);
-    }, 2000); // update setiap 2 detik
+    }, 2000); // update tiap 2 detik
     return () => clearInterval(id);
   }, [mode, running]);
 
+  // historical dummy loader
   async function handleHistoricalWecon(start: string, end: string) {
     const s = new Date(start).getTime();
     const e = new Date(end).getTime();
     const step = Math.floor((e - s) / 10);
-    const rows = [];
+
+    const rows: Record<string, unknown>[] = [];
     for (let i = 0; i < 10; i++) {
       const t = new Date(s + i * step).toISOString();
       rows.push({
         time: t,
-        pH: (7 + Math.random() * 0.5).toFixed(3),
-        DO: (5 + Math.random() * 2).toFixed(3),
-        BOD: (100 + Math.random() * 50).toFixed(3),
-        COD: (300 + Math.random() * 100).toFixed(3),
-        Predicted_Class: ["I", "IIA", "IIB", "III", "IV", "V"][Math.floor(Math.random() * 6)],
+        Ph_Sensor: (7 + Math.random() * 0.5).toFixed(3),
+        ORP_Sensor: (0.95 + Math.random() * 0.05).toFixed(4),
+        CT_Sensor: (0.01 + Math.random() * 0.05).toFixed(4),
+        TDS_Sensor: (25 + Math.random() * 5).toFixed(3),
+        NH_Sensor: (5 + Math.random() * 3).toFixed(3),
+        DO_Sensor: (6 + Math.random() * 1).toFixed(3),
+        TR_Sensor: (30 + Math.random() * 20).toFixed(3),
+        BOD_Sensor: (1300 + Math.random() * 150).toFixed(3),
+        COD_Sensor: (500 + Math.random() * 100).toFixed(3),
+        Predicted_Class: ["I", "II", "III", "IV", "V"][Math.floor(Math.random() * 5)],
       });
     }
-    setSchema({
-      time: "datetime",
-      pH: "number",
-      DO: "number",
-      BOD: "number",
-      COD: "number",
-      Predicted_Class: "string",
-    });
+
+    setSchema(FIXED_SCHEMA);
     setRows(rows);
     setMissing({});
     setOor({});
@@ -118,9 +124,33 @@ export default function Page() {
 
         {/* === pilih mode === */}
         <section className="mt-4 flex gap-4">
-          <label><input type="radio" value="csv" checked={mode === "csv"} onChange={() => setMode("csv")} /> Upload CSV</label>
-          <label><input type="radio" value="realtime" checked={mode === "realtime"} onChange={() => setMode("realtime")} /> Realtime Wecon</label>
-          <label><input type="radio" value="historical" checked={mode === "historical"} onChange={() => setMode("historical")} /> Historical Wecon</label>
+          <label>
+            <input
+              type="radio"
+              value="csv"
+              checked={mode === "csv"}
+              onChange={() => setMode("csv")}
+            />{" "}
+            Upload CSV
+          </label>
+          <label>
+            <input
+              type="radio"
+              value="realtime"
+              checked={mode === "realtime"}
+              onChange={() => setMode("realtime")}
+            />{" "}
+            Realtime Wecon
+          </label>
+          <label>
+            <input
+              type="radio"
+              value="historical"
+              checked={mode === "historical"}
+              onChange={() => setMode("historical")}
+            />{" "}
+            Historical Wecon
+          </label>
         </section>
 
         {/* === konten sesuai mode === */}
@@ -145,12 +175,22 @@ export default function Page() {
         {mode === "historical" && (
           <section className="mt-2 space-y-2">
             <div className="flex gap-2">
-              <input type="datetime-local" id="start" className="border rounded px-2 py-1" />
-              <input type="datetime-local" id="end" className="border rounded px-2 py-1" />
+              <input
+                type="datetime-local"
+                id="start"
+                className="border rounded px-2 py-1"
+              />
+              <input
+                type="datetime-local"
+                id="end"
+                className="border rounded px-2 py-1"
+              />
               <button
                 onClick={() => {
-                  const s = (document.getElementById("start") as HTMLInputElement).value;
-                  const e = (document.getElementById("end") as HTMLInputElement).value;
+                  const s = (document.getElementById("start") as HTMLInputElement)
+                    .value;
+                  const e = (document.getElementById("end") as HTMLInputElement)
+                    .value;
                   if (s && e) handleHistoricalWecon(s, e);
                 }}
                 className="px-4 py-2 border rounded-lg bg-blue-50 hover:bg-blue-100"
