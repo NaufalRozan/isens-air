@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import HeroHeader from "@/components/HeroHeader";
 import Visualizations from "@/components/Visualizations";
 import DeepseekPanel from "@/components/DeepSeekPanel";
@@ -121,6 +122,9 @@ export default function Page() {
     <main className="min-h-screen bg-white">
       <div className="container mx-auto px-4 md:px-6 pb-16">
         <HeroHeader />
+        <h2 className="mt-10 text-2xl font-bold text-gray-800">
+          Upload your CSV data or view live monitoring from connected stations
+        </h2>
 
         {/* === pilih mode === */}
         <section className="mt-4 flex gap-4">
@@ -201,6 +205,56 @@ export default function Page() {
           </section>
         )}
 
+        {/* === sample output kalau belum ada data === */}
+        {!hasData && (
+          <section className="mt-10">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">
+              After upload, your data will be visualized like this:
+            </h3>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* sample chart */}
+              <div className="rounded-xl border bg-white p-4 shadow-sm">
+                <h4 className="font-semibold text-gray-700 mb-2">pH Trend</h4>
+                <Image
+                  src="/img/chart_ph.png"
+                  alt="Sample chart pH trend"
+                  width={400}
+                  height={250}
+                  className="w-full h-auto rounded"
+                />
+              </div>
+
+              {/* sample table */}
+              <div className="rounded-xl border bg-white p-4 shadow-sm">
+                <h4 className="font-semibold text-gray-700 mb-2">
+                  Sample Parameters
+                </h4>
+                <Image
+                  src="/img/sample-parameter.png"
+                  alt="Sample Parameters Table"
+                  width={400}
+                  height={250}
+                  className="w-full h-auto rounded"
+                />
+              </div>
+
+              {/* sample dashboard screenshot */}
+              <div className="rounded-xl border bg-white p-4 shadow-sm">
+                <h4 className="font-semibold text-gray-700 mb-2">Dashboard View</h4>
+                <Image
+                  src="/img/dashboard.png"
+                  alt="Sample dashboard"
+                  width={400}
+                  height={250}
+                  className="w-full h-auto rounded"
+                />
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* === data real kalau sudah ada === */}
         {hasData && (
           <>
             <section className="mt-10">
