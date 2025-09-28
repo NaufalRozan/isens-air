@@ -6,7 +6,7 @@ const links = [
     { href: "/", label: "Home", external: false },
     { href: "/about", label: "About", external: false },
     {
-        href: "https://drive.google.com/file/d/13kctnOCZOCIAuLIE36wl4wjLLF6BiUKh/view?usp=sharing",
+        href: "https://drive.google.com/file/d/1tz7ZFkPMH3e8SDeo3LtIu0ECkME6ReKT/view?usp=sharing",
         label: "User Manual",
         external: true,
     },
